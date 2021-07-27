@@ -6,13 +6,13 @@ public class Test02 {
 	public static void main(String[] args) {
 		GlassFrame frame = GlassFrame.builder()
 				
-//													.fullscreen()
-													.size(300, 300)
+													.fullscreen()
+//													.size(300, 300)
 													
-//													.transparent(30)
-													.backgroundImage(20)
+													.transparent(30)
+//													.backgroundImage(20)
 													
-													.draggable()
+//													.draggable()
 													.escEnable()
 													.build(true);
 	}

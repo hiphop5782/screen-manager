@@ -2,6 +2,7 @@ package com.hacademy.screen.ui;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
@@ -20,6 +21,7 @@ public class GlassFrame extends JDialog{
 	
 	private BufferedImage img;
 	private int imgBorder = 1;
+	private boolean fullscreen;
 	
 	@Override
 	public void paint(Graphics g) {
@@ -69,12 +71,24 @@ public class GlassFrame extends JDialog{
 			return frame;
 		}
 		public GlassFrameBuilder fullscreen() {
-			frame.setSize(ScreenInformationReader.getCursorLocatedDeviceResolution().getSize());
+			frame.fullscreen = true;
+			frame.setBounds(ScreenInformationReader.getCursorLocatedDeviceResolution());
 			return this;
 		}
+		public GlassFrameBuilder location(int x, int y) {
+			frame.setLocation(x, y);
+			return this;
+		}
+		public GlassFrameBuilder location(Point p) {
+			return location(p.x, p.y);
+		}
 		public GlassFrameBuilder size(int width, int height) {
+			if(frame.fullscreen) throw new RuntimeException("풀스크린 모드에서는 창 크기를 설정할 수 없습니다.");
 			frame.setSize(width, height);
 			return this;
+		}
+		public GlassFrameBuilder size(Dimension dimension) {
+			return size(dimension.width, dimension.height);
 		}
 		public GlassFrameBuilder transparent(int percent) {
 			frame.setTransparency(percent);
