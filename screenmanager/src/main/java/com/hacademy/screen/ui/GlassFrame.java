@@ -1,41 +1,113 @@
 package com.hacademy.screen.ui;
 
+import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.Toolkit;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.swing.JDialog;
 
 import com.hacademy.screen.information.ScreenInformationReader;
 
+import lombok.ToString;
+
 public class GlassFrame extends JDialog{
-	
+	private static final long serialVersionUID = 1L;
 	private BufferedImage img;
 	private int imgBorder = 1;
 	private boolean fullscreen;
+	private MouseTracker tracker;
+	
+	private int alpha;
+	private Color transparentColor;
+	private Color tempColor = new Color(0, 0, 0, 0);
+	private int tempBorder = 2;
+	private ProcessType mode = ProcessType.DEFAULT;
+	private Rectangle area;
+	private CaptureListener captureListener;
+	
+	private Font font = new Font("", Font.PLAIN, 20);
+	private DrawPainter drawPainter;
 	
 	@Override
 	public void paint(Graphics g) {
-		if(img != null) {
-			//배경 이미지
-			g.drawImage(img, 0, 0, getWidth(), getHeight(), this);
-			
-			//이미지 테두리
-			if(imgBorder > 0) {
-				Graphics2D g2d = (Graphics2D)g;
-				g2d.setStroke(new BasicStroke(imgBorder));
-				g2d.drawRect(0, 0, getWidth()-1, getHeight()-1);
+		g.setFont(font);
+		
+		Graphics2D g2d = (Graphics2D)g;
+		
+		switch(mode) {
+		case AREA_SELECTION:
+		case STATIC_SELECTION:
+		case MOUSE_TRACKING:
+			if(img != null) {
+				//배경 이미지
+				g.drawImage(img, 0, 0, getWidth(), getHeight(), this);
+				
+				//이미지 테두리
+				if(imgBorder > 0) {
+					g2d.setStroke(new BasicStroke(imgBorder));
+					g2d.drawRect(0, 0, getWidth()-1, getHeight()-1);
+				}
 			}
+			
+			if(tracker != null) {
+				g2d.setComposite(AlphaComposite.Src);
+				g2d.setColor(transparentColor);
+				g2d.fillRect(0, 0, getWidth(), getHeight());
+				g2d.setStroke(new BasicStroke(tempBorder));
+				g2d.setColor(Color.black);
+				g2d.drawLine(tracker.x, 0, tracker.x, getHeight());
+				g2d.drawLine(0, tracker.y, getWidth(), tracker.y);
+				g2d.setColor(Color.white);
+				g2d.drawString("("+tracker.x+","+tracker.y+")", tracker.x+tempBorder*2, tracker.y-tempBorder*4);
+				
+				if(tracker.drag) {
+					//임시 영역 테두리
+					g2d.setColor(Color.black);
+					g2d.drawRect(tracker.getLeft(), tracker.getTop(), tracker.getWidth(), tracker.getHeight());
+					
+					//임시 영역
+					g2d.setColor(tempColor);
+					g2d.fillRect(
+							tracker.getLeft() + tempBorder / 2, 
+							tracker.getTop() + tempBorder / 2, 
+							tracker.getWidth() - tempBorder, 
+							tracker.getHeight() - tempBorder
+					);
+					
+					//영역 크기 글자 출력
+					int height = g2d.getFontMetrics().getHeight();
+					g2d.setColor(Color.black);
+					g2d.drawString(tracker.getWidth()+"x"+tracker.getHeight(), tracker.getLeft()+tempBorder*4, tracker.getTop()+height+tempBorder*2);
+				}
+			}
+			break;
+		case DRAWING:
+			
+		default:
 		}
+		
 	}
 	
 	public GlassFrame() {
@@ -45,15 +117,56 @@ public class GlassFrame extends JDialog{
 	public GlassFrame(int transparency) {
 		setUndecorated(true);
 		setTransparency(transparency);
-		setAlwaysOnTop(true);
-		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+		setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+		addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				close();
+			}
+		});
 	}
 	
 	public void setTransparency(int percent) {
 		if(percent < 0) percent = 0;
 		if(percent > 100) percent = 100;
-		int alpha = 255 - (int)(255 / 100.0 * percent);
-		setBackground(new Color(0, 0, 0, alpha));
+		this.alpha = 255 - (int)(255 / 100.0 * percent);
+		this.transparentColor = new Color(0, 0, 0, alpha);
+		this.setBackground(this.transparentColor);
+	}
+	
+	public void setInvisibleCursor() {
+		BufferedImage base = new BufferedImage(20, 20, BufferedImage.TYPE_INT_ARGB);
+		Cursor cursor = Toolkit.getDefaultToolkit().createCustomCursor(base, new Point(0, 0), "pen");
+		this.setCursor(cursor);
+	}
+	
+	public static final int MAX_CURSOR_SIZE = 20, MIN_CURSOR_SIZE = 3;
+	public void setCircleCursor(Color color, int size) {
+		if(size > MAX_CURSOR_SIZE || size < MIN_CURSOR_SIZE) {
+			return;
+		}
+		
+		BufferedImage base = new BufferedImage(MAX_CURSOR_SIZE, MAX_CURSOR_SIZE, BufferedImage.TYPE_INT_ARGB);
+		Graphics pen = base.getGraphics();
+		pen.setColor(color);
+		pen.fillOval(0, 0, size, size);
+		Cursor cursor = Toolkit.getDefaultToolkit().createCustomCursor(base, new Point(size/2, size/2), "pen");
+		this.setCursor(cursor);
+	}
+	
+	public void setTextCursor(Color color, int size) {
+		if(size > MAX_CURSOR_SIZE || size < MIN_CURSOR_SIZE) {
+			return;
+		}
+		
+		BufferedImage base = new BufferedImage(MAX_CURSOR_SIZE, MAX_CURSOR_SIZE, BufferedImage.TYPE_INT_ARGB);
+		Graphics pen = base.getGraphics();
+		pen.setColor(color);
+		pen.drawLine(0, 0, MAX_CURSOR_SIZE, 0);
+		pen.drawLine(MAX_CURSOR_SIZE, 0, MAX_CURSOR_SIZE, MAX_CURSOR_SIZE);
+		pen.drawLine(MAX_CURSOR_SIZE/2, 0, MAX_CURSOR_SIZE/2, MAX_CURSOR_SIZE);
+		Cursor cursor = Toolkit.getDefaultToolkit().createCustomCursor(base, new Point(size/2, size/2), "pen");
+		setCursor(cursor);
 	}
 	
 	public static GlassFrameBuilder builder() {
@@ -62,6 +175,7 @@ public class GlassFrame extends JDialog{
 	
 	public static class GlassFrameBuilder {
 		private GlassFrame frame = new GlassFrame();
+		private boolean sizeFlag;
 		private GlassFrameBuilder(){}
 		public GlassFrame build() {
 			return build(false);
@@ -83,22 +197,33 @@ public class GlassFrame extends JDialog{
 			return location(p.x, p.y);
 		}
 		public GlassFrameBuilder size(int width, int height) {
-			if(frame.fullscreen) throw new RuntimeException("풀스크린 모드에서는 창 크기를 설정할 수 없습니다.");
-			frame.setSize(width, height);
+			sizeFlag = true;
+			if(!frame.fullscreen) { 
+				frame.setSize(width, height);
+			}
 			return this;
 		}
 		public GlassFrameBuilder size(Dimension dimension) {
+			sizeFlag = true;
 			return size(dimension.width, dimension.height);
+		}
+		public GlassFrameBuilder bound(Rectangle rectangle) {
+			sizeFlag = true;
+			frame.setBounds(rectangle);
+			return this;
+		}
+		public GlassFrameBuilder transparent() {
+			return transparent(100);
 		}
 		public GlassFrameBuilder transparent(int percent) {
 			frame.setTransparency(percent);
 			return this;
 		}
 		public GlassFrameBuilder backgroundImage() {
-			return backgroundImage(0);
+			return backgroundImage(1);
 		}
 		public GlassFrameBuilder backgroundImage(int imgBorder) {
-			if(frame.getWidth() == 0 || frame.getHeight() == 0) {
+			if(!sizeFlag) {
 				throw new RuntimeException("size를 먼저 설정하세요");
 			}
 			if(imgBorder < 0) {
@@ -117,7 +242,7 @@ public class GlassFrame extends JDialog{
 				@Override
 				public void keyPressed(KeyEvent e) {
 					if(keyCode == e.getExtendedKeyCode()) {
-						frame.dispose();
+						frame.close();
 					}
 				}
 			});
@@ -144,6 +269,219 @@ public class GlassFrame extends JDialog{
 				}
 			});
 			return this;
+		}
+		public GlassFrameBuilder alwaysOnTop() {
+			frame.setAlwaysOnTop(true);
+			return this;
+		}
+		public GlassFrameBuilder mouseTracking() {
+			frame.mode = ProcessType.MOUSE_TRACKING;
+			if(frame.tracker == null) {
+				frame.tracker = frame.new MouseTracker();
+				frame.addMouseMotionListener(frame.tracker);
+				frame.addMouseListener(frame.tracker);
+			}
+			return this;
+		}
+		public GlassFrameBuilder mouseInvisible() {
+			frame.setInvisibleCursor();
+			return this;
+		}
+		public GlassFrameBuilder areaSelectionMode(CaptureListener listener) {
+			frame.mode = ProcessType.AREA_SELECTION;
+			frame.captureListener = listener;
+			return this.fullscreen()
+								.alwaysOnTop()
+								.transparent(50)
+								.escEnable()
+								.mouseTracking()
+							.mouseInvisible();
+		}
+		public GlassFrameBuilder staticSelectionMode() {
+			return staticSelectionMode(null);
+		}
+		public GlassFrameBuilder staticSelectionMode(CaptureListener listener) {
+			frame.mode = ProcessType.STATIC_SELECTION;
+			frame.captureListener = listener;
+			return this.fullscreen()
+									.alwaysOnTop()
+									.transparent(50)
+									.escEnable()
+									.mouseTracking()
+								.mouseInvisible();
+		}
+		public GlassFrameBuilder drawingMode() {
+			frame.mode = ProcessType.DRAWING;
+//			frame.setCircleCursor(Color.black, 5);
+			frame.setCircleCursor(Color.black, 5);
+			frame.drawPainter = frame.new DrawPainter();
+			return this.fullscreen().alwaysOnTop().escEnable().transparent();
+		}
+	}
+	
+	private TimerTask refreshTask = new TimerTask() {
+		@Override
+		public void run() {
+			repaint();
+		}
+	};
+	
+	public void close() {
+		switch(mode) {
+			case STATIC_SELECTION:
+				GlassFrame.builder()
+										.bound(area)
+										.backgroundImage()
+										.draggable()
+										.escEnable()
+									.build(true);
+			case AREA_SELECTION:
+				if(captureListener != null) {
+					BufferedImage image = ScreenInformationReader.capture(area);
+					captureListener.capture(image);
+				}
+				break;
+			default:
+		}
+		if(tracker != null)
+			tracker.cancel();
+		super.dispose();
+	}
+	
+	@ToString(of = {"oldX", "oldY", "x", "y", "drag"})
+	class MouseTracker extends MouseAdapter implements MouseMotionListener{
+		private int oldX, oldY;
+		private int x, y;
+		public boolean drag;
+		private Timer timer = new Timer();
+		
+		public MouseTracker() {
+			timer.scheduleAtFixedRate(refreshTask, 0, 1000/24);
+		}
+		
+		@Override
+		public void mouseDragged(MouseEvent e) {
+			x = e.getX();
+			y = e.getY();
+		}
+		
+		@Override
+		public void mouseMoved(MouseEvent e) {
+			x = e.getX();
+			y = e.getY();
+		}
+		
+		@Override
+		public void mousePressed(MouseEvent e) {
+			oldX = x = e.getX();
+			oldY = y = e.getY();
+			drag = true;
+		}
+		
+		@Override
+		public void mouseReleased(MouseEvent e) {
+			drag = false;
+			area = getRectangle();
+			
+			switch(mode) {
+			case STATIC_SELECTION:
+			case AREA_SELECTION:
+				close();
+			default:
+			}
+		}
+		
+		public void cancel() {
+			timer.cancel();
+		}
+		
+		public int getLeft() {
+			return Math.min(oldX, x);
+		}
+		
+		public int getTop() {
+			return Math.min(oldY, y);
+		}
+		
+		public int getWidth() {
+			return Math.max(oldX, x) - Math.min(oldX, x);
+		}
+		
+		public int getHeight() {
+			return Math.max(oldY, y) - Math.min(oldY, y);
+		}
+		
+		public Dimension getDimension() {
+			return new Dimension(getWidth(), getHeight());
+		}
+		
+		public Rectangle getRectangle() {
+			return new Rectangle(getLeft(), getTop(), getWidth(), getHeight());
+		}
+		
+	}
+	
+	class DrawPainter implements KeyListener, MouseMotionListener, MouseWheelListener, MouseListener{
+		private int oldX, oldY, x, y;
+		private boolean drag;
+		private boolean enter;
+		private Timer timer = new Timer();
+		
+		public DrawPainter() {
+			timer.scheduleAtFixedRate(refreshTask, 0, 1000/24);
+		}
+		@Override
+		public void mouseClicked(MouseEvent e) {}
+		@Override
+		public void mousePressed(MouseEvent e) {
+			oldX = x = e.getX();
+			oldY = y = e.getY();
+			drag = true;
+		}
+		@Override
+		public void mouseReleased(MouseEvent e) {
+			drag = false;
+		}
+		@Override
+		public void mouseEntered(MouseEvent e) {
+			enter = true;
+		}
+		@Override
+		public void mouseExited(MouseEvent e) {
+			enter = false;
+		}
+		@Override
+		public void mouseWheelMoved(MouseWheelEvent e) {
+			
+		}
+		@Override
+		public void mouseDragged(MouseEvent e) {
+			x = e.getX();
+			y = e.getY();
+		}
+		@Override
+		public void mouseMoved(MouseEvent e) {
+			x = e.getX();
+			y = e.getY();
+		}
+		@Override
+		public void keyTyped(KeyEvent e) {
+			// TODO Auto-generated method stub
+			
+		}
+		@Override
+		public void keyPressed(KeyEvent e) {
+			// TODO Auto-generated method stub
+			
+		}
+		@Override
+		public void keyReleased(KeyEvent e) {
+			// TODO Auto-generated method stub
+			
+		}
+		
+		public void cancel() {
+			timer.cancel();
 		}
 	}
 }

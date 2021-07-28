@@ -7,13 +7,24 @@ public class Test02 {
 		GlassFrame frame = GlassFrame.builder()
 				
 													.fullscreen()
+													.alwaysOnTop()
 //													.size(300, 300)
 													
-													.transparent(30)
-//													.backgroundImage(20)
+													.transparent(60)
+//													.backgroundImage(5)
 													
 //													.draggable()
 													.escEnable()
-													.build(true);
+													
+													.mouseTracking()
+													.mouseInvisible()
+//													.areaSelectionMode(img->{
+//														System.out.println("clear");
+//													})
+				
+//													.staticSelectionMode()
+//													.staticSelectionMode(img->System.out.println("clear"))
+													
+												.build(true);
 	}
 }
