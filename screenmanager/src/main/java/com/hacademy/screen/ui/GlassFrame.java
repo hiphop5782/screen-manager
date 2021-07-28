@@ -23,18 +23,26 @@ import java.awt.event.MouseWheelListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.swing.JDialog;
+import javax.swing.KeyStroke;
 
 import com.hacademy.screen.information.ScreenInformationReader;
+import com.hacademy.screen.ui.data.Multipoint;
+import com.hacademy.screen.ui.shape.Figure;
+import com.hacademy.screen.ui.shape.FigureFactory;
 
 import lombok.ToString;
 
 public class GlassFrame extends JDialog{
 	private static final long serialVersionUID = 1L;
-	private BufferedImage img;
+	private BufferedImage backgroundImage;
 	private int imgBorder = 1;
 	private boolean fullscreen;
 	private MouseTracker tracker;
@@ -60,9 +68,9 @@ public class GlassFrame extends JDialog{
 		case AREA_SELECTION:
 		case STATIC_SELECTION:
 		case MOUSE_TRACKING:
-			if(img != null) {
+			if(backgroundImage != null) {
 				//배경 이미지
-				g.drawImage(img, 0, 0, getWidth(), getHeight(), this);
+				g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
 				
 				//이미지 테두리
 				if(imgBorder > 0) {
@@ -104,7 +112,14 @@ public class GlassFrame extends JDialog{
 			}
 			break;
 		case DRAWING:
-			
+			if(drawPainter.tempFigure != null)
+				drawPainter.tempFigure.draw(g2d);
+				
+			for(Figure figure : drawPainter.figureList) {
+				if(!figure.isComplete()) {
+					figure.draw(g2d);
+				}
+			}
 		default:
 		}
 		
@@ -238,7 +253,7 @@ public class GlassFrame extends JDialog{
 			frame.imgBorder = imgBorder;
 			Rectangle rectangle = new Rectangle(frame.getLocation(), frame.getSize());
 			BufferedImage image = ScreenInformationReader.capture(rectangle);
-			frame.img = image;
+			frame.backgroundImage = image;
 			frame.repaint();
 			return this;
 		}
@@ -431,12 +446,15 @@ public class GlassFrame extends JDialog{
 		}
 		
 	}
-	
+
 	class DrawPainter implements KeyListener, MouseMotionListener, MouseWheelListener, MouseListener{
-		private int oldX, oldY, x, y;
-		private boolean drag;
-		private boolean enter;
+		private Multipoint point = new Multipoint();
+		private boolean enter, focus;
 		private Timer timer = new Timer();
+		private List<Figure> figureList = new ArrayList<>();
+		private Figure tempFigure;
+		private KeyStroke pressKey;
+		private Set<Integer> pressKeyStorage = new HashSet<>();
 		
 		public DrawPainter() {
 			timer.scheduleAtFixedRate(refreshTask, 0, 1000/24);
@@ -445,13 +463,29 @@ public class GlassFrame extends JDialog{
 		public void mouseClicked(MouseEvent e) {}
 		@Override
 		public void mousePressed(MouseEvent e) {
-			oldX = x = e.getX();
-			oldY = y = e.getY();
-			drag = true;
+			focus = true;
+			point.setOldX(e.getX());
+			point.setOldY(e.getY());
+			point.setX(e.getX());
+			point.setY(e.getY());
+			
+			
 		}
 		@Override
 		public void mouseReleased(MouseEvent e) {
-			drag = false;
+			point.setX(e.getX());
+			point.setY(e.getY());
+			
+			//키보드 값을 이용한 도형 추가
+			if(pressKey != null) {
+				Figure figure = FigureFactory.create(pressKey, point);
+				figureList.add(figure);
+			}
+			else {
+				
+			}
+			
+			focus = false;
 		}
 		@Override
 		public void mouseEntered(MouseEvent e) {
@@ -467,34 +501,57 @@ public class GlassFrame extends JDialog{
 		}
 		@Override
 		public void mouseDragged(MouseEvent e) {
-			x = e.getX();
-			y = e.getY();
+			point.setX(e.getX());
+			point.setY(e.getY());
+			
+			if(tempFigure == null) {
+				tempFigure = FigureFactory.create(pressKey, point);
+			}
+			else {
+				tempFigure = FigureFactory.refresh(tempFigure, point);
+			}
 		}
 		@Override
 		public void mouseMoved(MouseEvent e) {
-			x = e.getX();
-			y = e.getY();
+			point.setX(e.getX());
+			point.setY(e.getY());
+			
+			if(tempFigure != null) {
+				tempFigure = null;
+			}
 		}
 		@Override
 		public void keyTyped(KeyEvent e) {
-			// TODO Auto-generated method stub
 			
 		}
 		@Override
 		public void keyPressed(KeyEvent e) {
-			switch(e.getExtendedKeyCode()) {
-			case KeyEvent.VK_ESCAPE: setCircleCursor(Color.black, 5); break;
-			case KeyEvent.VK_T:setTextCursor(Color.black);
+			pressKeyStorage.add(e.getKeyCode());
+			
+			if(e.getExtendedKeyCode() == KeyEvent.VK_ESCAPE) {
+				if(focus) {
+					pressKey = null;
+				}
+				else {
+					close();
+				}
+			}
+			else{
+				pressKey = KeyStroke.getKeyStroke(e.getExtendedKeyCode(), e.getModifiers());
 			}
 		}
 		
 		@Override
 		public void keyReleased(KeyEvent e) {
-			
+			pressKeyStorage.remove(e.getKeyCode());
+			if(pressKeyStorage.isEmpty()) {
+				pressKey = null;
+			}
 		}
 		
 		public void cancel() {
 			timer.cancel();
 		}
 	}
+	
 }
