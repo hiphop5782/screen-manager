@@ -154,17 +154,22 @@ public class GlassFrame extends JDialog{
 		this.setCursor(cursor);
 	}
 	
-	public void setTextCursor(Color color, int size) {
-		if(size > MAX_CURSOR_SIZE || size < MIN_CURSOR_SIZE) {
-			return;
-		}
+	public void setTextCursor(Color color) {
+		int size = 15;
 		
 		BufferedImage base = new BufferedImage(MAX_CURSOR_SIZE, MAX_CURSOR_SIZE, BufferedImage.TYPE_INT_ARGB);
 		Graphics pen = base.getGraphics();
 		pen.setColor(color);
-		pen.drawLine(0, 0, MAX_CURSOR_SIZE, 0);
-		pen.drawLine(MAX_CURSOR_SIZE, 0, MAX_CURSOR_SIZE, MAX_CURSOR_SIZE);
-		pen.drawLine(MAX_CURSOR_SIZE/2, 0, MAX_CURSOR_SIZE/2, MAX_CURSOR_SIZE);
+		
+		//텍스트 커서 모양 만들기
+		int center = MAX_CURSOR_SIZE / 2;
+		int xBegin = center - size / 4;
+		int xEnd = center + size / 4;
+		int yBegin = MAX_CURSOR_SIZE - size;
+		int yEnd = MAX_CURSOR_SIZE-1;
+		pen.drawLine(xBegin, yBegin, xEnd, yBegin);
+		pen.drawLine(center, yBegin, center, yEnd);
+		pen.drawLine(xBegin, yEnd, xEnd, yEnd);
 		Cursor cursor = Toolkit.getDefaultToolkit().createCustomCursor(base, new Point(size/2, size/2), "pen");
 		setCursor(cursor);
 	}
@@ -312,10 +317,13 @@ public class GlassFrame extends JDialog{
 		}
 		public GlassFrameBuilder drawingMode() {
 			frame.mode = ProcessType.DRAWING;
-//			frame.setCircleCursor(Color.black, 5);
 			frame.setCircleCursor(Color.black, 5);
 			frame.drawPainter = frame.new DrawPainter();
-			return this.fullscreen().alwaysOnTop().escEnable().transparent();
+			frame.addKeyListener(frame.drawPainter);
+			frame.addMouseListener(frame.drawPainter);
+			frame.addMouseMotionListener(frame.drawPainter);
+			frame.addMouseWheelListener(frame.drawPainter);
+			return this.fullscreen().alwaysOnTop().transparent();
 		}
 	}
 	
@@ -341,10 +349,13 @@ public class GlassFrame extends JDialog{
 					captureListener.capture(image);
 				}
 				break;
+			case DRAWING:
 			default:
 		}
 		if(tracker != null)
 			tracker.cancel();
+		if(drawPainter != null)
+			drawPainter.cancel();
 		super.dispose();
 	}
 	
@@ -471,12 +482,14 @@ public class GlassFrame extends JDialog{
 		}
 		@Override
 		public void keyPressed(KeyEvent e) {
-			// TODO Auto-generated method stub
-			
+			switch(e.getExtendedKeyCode()) {
+			case KeyEvent.VK_ESCAPE: setCircleCursor(Color.black, 5); break;
+			case KeyEvent.VK_T:setTextCursor(Color.black);
+			}
 		}
+		
 		@Override
 		public void keyReleased(KeyEvent e) {
-			// TODO Auto-generated method stub
 			
 		}
 		
