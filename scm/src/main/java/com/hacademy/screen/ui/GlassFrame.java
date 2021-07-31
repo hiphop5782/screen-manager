@@ -31,6 +31,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.swing.JDialog;
+import javax.swing.JLabel;
 import javax.swing.KeyStroke;
 
 import com.hacademy.screen.information.ScreenInformationReader;
@@ -57,9 +58,14 @@ public class GlassFrame extends JDialog{
 	
 	private Font font = new Font("", Font.PLAIN, 20);
 	private DrawPainter drawPainter;
+	private BufferedImage backupImage;
 	
 	@Override
 	public void paint(Graphics g) {
+//		BufferedImage image = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_4BYTE_ABGR);
+//		image.getGraphics().drawLine(10, 10, 500, 500);
+//		g.drawImage(image, 0, 0, getWidth(), getHeight(), this);
+		
 		g.setFont(font);
 		
 		Graphics2D g2d = (Graphics2D)g;
@@ -112,14 +118,22 @@ public class GlassFrame extends JDialog{
 			}
 			break;
 		case DRAWING:
-			if(drawPainter.tempFigure != null)
-				drawPainter.tempFigure.draw(g2d);
+			//배경이 있다면 표시(static drawing)
+			if(backgroundImage != null) {
+				//배경 이미지
+				g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
 				
-			for(Figure figure : drawPainter.figureList) {
-				if(!figure.isComplete()) {
-					figure.draw(g2d);
+				//이미지 테두리
+				if(imgBorder > 0) {
+					g2d.setStroke(new BasicStroke(imgBorder));
+					g2d.drawRect(0, 0, getWidth()-1, getHeight()-1);
 				}
 			}
+			
+			if(drawPainter.tempFigure != null) {
+				drawPainter.tempFigure.draw(g2d);
+			}
+				
 		default:
 		}
 		
@@ -133,6 +147,7 @@ public class GlassFrame extends JDialog{
 		setUndecorated(true);
 		setTransparency(transparency);
 		setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+		setLayout(null);
 		addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
@@ -205,6 +220,7 @@ public class GlassFrame extends JDialog{
 			return frame;
 		}
 		public GlassFrameBuilder fullscreen() {
+			sizeFlag = true;
 			frame.fullscreen = true;
 			frame.setBounds(ScreenInformationReader.getCursorLocatedDeviceResolution());
 			return this;
@@ -330,7 +346,7 @@ public class GlassFrame extends JDialog{
 									.mouseTracking()
 								.mouseInvisible();
 		}
-		public GlassFrameBuilder drawingMode() {
+		public GlassFrameBuilder dynamicDrawingMode() {
 			frame.mode = ProcessType.DRAWING;
 			frame.setCircleCursor(Color.black, 5);
 			frame.drawPainter = frame.new DrawPainter();
@@ -339,6 +355,16 @@ public class GlassFrame extends JDialog{
 			frame.addMouseMotionListener(frame.drawPainter);
 			frame.addMouseWheelListener(frame.drawPainter);
 			return this.fullscreen().alwaysOnTop().transparent();
+		}
+		public GlassFrameBuilder staticDrawingMode() {
+			frame.mode = ProcessType.DRAWING;
+			frame.setCircleCursor(Color.black, 5);
+			frame.drawPainter = frame.new DrawPainter();
+			frame.addKeyListener(frame.drawPainter);
+			frame.addMouseListener(frame.drawPainter);
+			frame.addMouseMotionListener(frame.drawPainter);
+			frame.addMouseWheelListener(frame.drawPainter);
+			return this.fullscreen().alwaysOnTop().backgroundImage();
 		}
 	}
 	
@@ -457,7 +483,7 @@ public class GlassFrame extends JDialog{
 		private Set<Integer> pressKeyStorage = new HashSet<>();
 		
 		public DrawPainter() {
-			timer.scheduleAtFixedRate(refreshTask, 0, 1000/24);
+//			timer.scheduleAtFixedRate(refreshTask, 0, 1000/24);
 		}
 		@Override
 		public void mouseClicked(MouseEvent e) {}
@@ -468,8 +494,6 @@ public class GlassFrame extends JDialog{
 			point.setOldY(e.getY());
 			point.setX(e.getX());
 			point.setY(e.getY());
-			
-			
 		}
 		@Override
 		public void mouseReleased(MouseEvent e) {
@@ -479,7 +503,12 @@ public class GlassFrame extends JDialog{
 			//키보드 값을 이용한 도형 추가
 			if(pressKey != null) {
 				Figure figure = FigureFactory.create(pressKey, point);
-				figureList.add(figure);
+				System.out.println(figure);
+				if(figure != null) {
+					figureList.add(figure);
+					add(figure);
+					System.out.println(figureList.contains(figure)+ " , " + figureList.size() + " , " + GlassFrame.this.getComponentCount());
+				}
 			}
 			else {
 				
@@ -504,12 +533,12 @@ public class GlassFrame extends JDialog{
 			point.setX(e.getX());
 			point.setY(e.getY());
 			
-			if(tempFigure == null) {
-				tempFigure = FigureFactory.create(pressKey, point);
-			}
-			else {
-				tempFigure = FigureFactory.refresh(tempFigure, point);
-			}
+//			if(tempFigure == null) {
+//				tempFigure = FigureFactory.create(pressKey, point);
+//			}
+//			else {
+//				tempFigure = FigureFactory.refresh(tempFigure, point);
+//			}
 		}
 		@Override
 		public void mouseMoved(MouseEvent e) {
@@ -538,6 +567,8 @@ public class GlassFrame extends JDialog{
 			}
 			else{
 				pressKey = KeyStroke.getKeyStroke(e.getExtendedKeyCode(), e.getModifiers());
+				String figureName = FigureFactory.find(pressKey);
+				//이후에 어떻게 할지 고민해야됨(커서에 표시 등)
 			}
 		}
 		
@@ -550,7 +581,7 @@ public class GlassFrame extends JDialog{
 		}
 		
 		public void cancel() {
-			timer.cancel();
+//			timer.cancel();
 		}
 	}
 	
