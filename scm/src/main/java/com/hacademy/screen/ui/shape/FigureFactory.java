@@ -37,15 +37,19 @@ public class FigureFactory {
 	public static Figure create(KeyStroke key, Multipoint point) {
 		try {
 			Figure figure = map.get(key).getDeclaredConstructor().newInstance();
-//			Rectangle rectangle = convert(point);
-//			figure.setBounds(rectangle);
+			Rectangle rectangle = convert(point);
+			figure.setBounds(rectangle);
 			
 			figure.setBorder(BorderFactory.createLineBorder(Color.black, 5));
-			figure.setBounds(0, 0, 100, 100);
 			
-			if(figure instanceof Line) {
-				Line line = (Line)figure;
-				line.setPoints(point);
+			if(figure instanceof Linear) {
+				Linear linear = (Linear)figure;
+				linear.thickness = 5;
+				
+				if(figure instanceof Line) {
+					Line line = (Line)figure;
+					line.setPoints(point);
+				}
 			}
 			
 			return figure;
@@ -57,6 +61,10 @@ public class FigureFactory {
 
 	public static Figure refresh(Figure figure, Multipoint point) {
 		figure.setBounds(convert(point));
+		if(figure instanceof Line) {
+			Line line = (Line)figure;
+			line.setPoints(point);
+		}
 		return figure;
 	}
 	

@@ -62,10 +62,6 @@ public class GlassFrame extends JDialog{
 	
 	@Override
 	public void paint(Graphics g) {
-//		BufferedImage image = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_4BYTE_ABGR);
-//		image.getGraphics().drawLine(10, 10, 500, 500);
-//		g.drawImage(image, 0, 0, getWidth(), getHeight(), this);
-		
 		g.setFont(font);
 		
 		Graphics2D g2d = (Graphics2D)g;
@@ -117,23 +113,6 @@ public class GlassFrame extends JDialog{
 				}
 			}
 			break;
-		case DRAWING:
-			//배경이 있다면 표시(static drawing)
-			if(backgroundImage != null) {
-				//배경 이미지
-				g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
-				
-				//이미지 테두리
-				if(imgBorder > 0) {
-					g2d.setStroke(new BasicStroke(imgBorder));
-					g2d.drawRect(0, 0, getWidth()-1, getHeight()-1);
-				}
-			}
-			
-			if(drawPainter.tempFigure != null) {
-				drawPainter.tempFigure.draw(g2d);
-			}
-				
 		default:
 		}
 		
@@ -346,26 +325,26 @@ public class GlassFrame extends JDialog{
 									.mouseTracking()
 								.mouseInvisible();
 		}
-		public GlassFrameBuilder dynamicDrawingMode() {
-			frame.mode = ProcessType.DRAWING;
-			frame.setCircleCursor(Color.black, 5);
-			frame.drawPainter = frame.new DrawPainter();
-			frame.addKeyListener(frame.drawPainter);
-			frame.addMouseListener(frame.drawPainter);
-			frame.addMouseMotionListener(frame.drawPainter);
-			frame.addMouseWheelListener(frame.drawPainter);
-			return this.fullscreen().alwaysOnTop().transparent();
-		}
-		public GlassFrameBuilder staticDrawingMode() {
-			frame.mode = ProcessType.DRAWING;
-			frame.setCircleCursor(Color.black, 5);
-			frame.drawPainter = frame.new DrawPainter();
-			frame.addKeyListener(frame.drawPainter);
-			frame.addMouseListener(frame.drawPainter);
-			frame.addMouseMotionListener(frame.drawPainter);
-			frame.addMouseWheelListener(frame.drawPainter);
-			return this.fullscreen().alwaysOnTop().backgroundImage();
-		}
+//		public GlassFrameBuilder dynamicDrawingMode() {
+//			frame.mode = ProcessType.DRAWING;
+//			frame.setCircleCursor(Color.black, 5);
+//			frame.drawPainter = frame.new DrawPainter();
+//			frame.addKeyListener(frame.drawPainter);
+//			frame.addMouseListener(frame.drawPainter);
+//			frame.addMouseMotionListener(frame.drawPainter);
+//			frame.addMouseWheelListener(frame.drawPainter);
+//			return this.fullscreen().alwaysOnTop().transparent();
+//		}
+//		public GlassFrameBuilder staticDrawingMode() {
+//			frame.mode = ProcessType.DRAWING;
+//			frame.setCircleCursor(Color.black, 5);
+//			frame.drawPainter = frame.new DrawPainter();
+//			frame.addKeyListener(frame.drawPainter);
+//			frame.addMouseListener(frame.drawPainter);
+//			frame.addMouseMotionListener(frame.drawPainter);
+//			frame.addMouseWheelListener(frame.drawPainter);
+//			return this.fullscreen().alwaysOnTop().backgroundImage();
+//		}
 	}
 	
 	private TimerTask refreshTask = new TimerTask() {
@@ -390,7 +369,6 @@ public class GlassFrame extends JDialog{
 					captureListener.capture(image);
 				}
 				break;
-			case DRAWING:
 			default:
 		}
 		if(tracker != null)

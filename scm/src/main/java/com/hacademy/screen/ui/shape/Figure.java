@@ -12,9 +12,10 @@ import lombok.Data;
 public abstract class Figure extends JLabel{
 	private static final long serialVersionUID = 1L;
 	protected Color color;
-	public void draw(Graphics g) {
+
+	@Override
+	public void paint(Graphics g) {
+		super.paint(g);
 		g.setColor(color);
-		paint((Graphics2D)g);
 	}
-	public abstract void paint(Graphics2D pen);
 }
