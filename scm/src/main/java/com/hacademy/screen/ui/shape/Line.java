@@ -1,5 +1,6 @@
 package com.hacademy.screen.ui.shape;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -18,8 +19,9 @@ public class Line extends Linear{
 	@Override
 	public void paint(Graphics g) {
 		super.paint(g);
-		g.drawLine(x1, y1, x2, y2);
-//		System.out.println("paint = ("+x1+","+y1+","+x2+","+y2+")");
+		
+		Graphics2D g2d = (Graphics2D)g;
+		g2d.drawLine(x1, y1, x2, y2);
 	}
 
 	public void setPoints(Multipoint point) {

@@ -99,7 +99,8 @@ public class DrawingFrame extends JFrame{
 			point.setOldY(e.getY());
 			point.setX(e.getX());
 			point.setY(e.getY());
-			temp = FigureFactory.create(Keyboard.E, point);
+			temp = FigureFactory.create(Keyboard.T, point);
+//			temp = FigureFactory.create(Keyboard.X, point);
 			getContentPane().add(temp);
 		}
 

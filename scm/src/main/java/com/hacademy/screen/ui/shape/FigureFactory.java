@@ -25,6 +25,9 @@ public class FigureFactory {
 	static {
 		map.put(Keyboard.E, Line.class);
 		map.put(Keyboard.Q, Rect.class);
+		map.put(Keyboard.W, Circle.class);
+		map.put(Keyboard.T, Text.class);
+		map.put(Keyboard.X, Crossmark.class);
 	}
 	
 	/**
@@ -40,8 +43,6 @@ public class FigureFactory {
 			Rectangle rectangle = convert(point);
 			figure.setBounds(rectangle);
 			
-			figure.setBorder(BorderFactory.createLineBorder(Color.black, 5));
-			
 			if(figure instanceof Linear) {
 				Linear linear = (Linear)figure;
 				linear.thickness = 5;
@@ -49,6 +50,9 @@ public class FigureFactory {
 				if(figure instanceof Line) {
 					Line line = (Line)figure;
 					line.setPoints(point);
+				}
+				else if(figure instanceof Rect) {
+					//do nothing
 				}
 			}
 			
