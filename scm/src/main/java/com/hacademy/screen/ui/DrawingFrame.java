@@ -1,5 +1,6 @@
 package com.hacademy.screen.ui;
 
+import java.awt.Color;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -28,6 +29,9 @@ public class DrawingFrame extends JFrame{
 		mouseHandler = this.new MouseHandler();
 		
 		setLayout(null);
+		setUndecorated(true);
+		setResizable(false);
+		setBackground(new Color(0, 0, 0, 10));
 		addKeyListener(keyHandler);
 		addMouseListener(mouseHandler);
 		addMouseMotionListener(mouseHandler);
@@ -99,8 +103,8 @@ public class DrawingFrame extends JFrame{
 			point.setOldY(e.getY());
 			point.setX(e.getX());
 			point.setY(e.getY());
-			temp = FigureFactory.create(Keyboard.T, point);
-//			temp = FigureFactory.create(Keyboard.X, point);
+//			temp = FigureFactory.create(Keyboard.T, point);
+			temp = FigureFactory.create(Keyboard.X, point);
 			getContentPane().add(temp);
 		}
 
