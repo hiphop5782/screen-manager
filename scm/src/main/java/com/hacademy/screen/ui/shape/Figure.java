@@ -38,41 +38,41 @@ public abstract class Figure extends JPanel{
 		private int oldX, oldY;
 		private int mouseX, mouseY;
 		private boolean drag;
-		private boolean edge;
+//		private boolean edge;
 		private Rectangle rect;
 		private Direction direction;
 		private int offset = 5;
 		@Override
 		public void mousePressed(MouseEvent e) {
 			drag = true;
-			edge = isEdge(e.getX(), e.getY(), offset); 
+//			edge = isEdge(e.getX(), e.getY(), offset); 
 			oldX = e.getX(); 
 			oldY = e.getY();
 			
-			if(edge) {
-				mouseX = e.getX();
-				mouseY = e.getY();
-				rect = getBounds();
-				direction = getDirection(e.getX(), e.getY(), offset);
-			}
+//			if(edge) {
+//				mouseX = e.getX();
+//				mouseY = e.getY();
+//				rect = getBounds();
+//				direction = getDirection(e.getX(), e.getY(), offset);
+//			}
 		}
 		@Override
 		public void mouseReleased(MouseEvent e) {
 			drag = false;
-			edge = false;
+//			edge = false;
 			rect = null;
 			direction = null;
 		}
 		@Override
 		public void mouseDragged(MouseEvent e) {
-			if(edge) {
-				resize(mouseX, mouseY, e.getX(), e.getY(), direction);
-				mouseX = e.getX();
-				mouseY = e.getY();
-			}
-			else{
+//			if(!edge) {
 				move(oldX, oldY, e.getX(), e.getY());
-			}
+//			}
+//			else{
+//				resize(mouseX, mouseY, e.getX(), e.getY(), direction);
+//				mouseX = e.getX();
+//				mouseY = e.getY();
+//			}
 		}
 		@Override
 		public void mouseEntered(MouseEvent e) {
@@ -87,13 +87,13 @@ public abstract class Figure extends JPanel{
 		@Override
 		public void mouseMoved(MouseEvent e) {
 			int offset = 5;
-			if(isEdge(e.getX(), e.getY(), offset)) {
-				Direction direction = getDirection(e.getX(), e.getY(), offset);
-				setCursor(direction.getCursor());
-			}
-			else {
+			if(!isEdge(e.getX(), e.getY(), offset)) {
 				setCursor(Direction.DEFAULT.getCursor());
 			}
+//			else {
+//				Direction direction = getDirection(e.getX(), e.getY(), offset);
+//				setCursor(direction.getCursor());
+//			}
 		}
 		
 		private boolean isEdge(int x, int y, int offset) {
